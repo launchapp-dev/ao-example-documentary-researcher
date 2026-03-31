@@ -1,0 +1,14 @@
+{
+  "topic": "The Rise and Fall of Theranos",
+  "angle": "How regulatory gaps and celebrity culture enabled a decade of deception in health tech",
+  "target_audience": "General audience, tech-curious, interested in corporate fraud",
+  "target_duration_minutes": 45,
+  "key_questions": [
+    "How did Theranos avoid regulatory scrutiny for so long?",
+    "What role did the board composition play in enabling the fraud?",
+    "How did media coverage shift from hype to investigation?",
+    "What were the direct patient harms from inaccurate test results?",
+    "What regulatory changes resulted from the scandal?"
+  ],
+  "tone": "investigative, measured, empathetic to victims"
+}

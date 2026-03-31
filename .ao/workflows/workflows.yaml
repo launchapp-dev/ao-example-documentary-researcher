@@ -1,0 +1,40 @@
+default_workflow_ref: documentary-research
+
+workflows:
+  - id: documentary-research
+    name: "Documentary Research Pipeline"
+    description: "End-to-end documentary research: scope topic → gather sources → fact-check → build narrative → write script → compile production package"
+    phases:
+      - scope-topic:
+          on_verdict:
+            too-broad:
+              target: scope-topic
+          max_rework_attempts: 2
+      - gather-sources:
+          on_verdict:
+            insufficient:
+              target: gather-sources
+          max_rework_attempts: 3
+      - check-facts:
+          on_verdict:
+            disputed:
+              target: gather-sources
+            unreliable:
+              target: scope-topic
+          max_rework_attempts: 3
+      - build-narrative:
+          on_verdict:
+            needs-work:
+              target: build-narrative
+            restructure:
+              target: build-narrative
+          max_rework_attempts: 3
+      - write-script
+      - compile-package
+    post_success:
+      merge:
+        strategy: squash
+        target_branch: main
+        create_pr: true
+        auto_merge: true
+        cleanup_worktree: true

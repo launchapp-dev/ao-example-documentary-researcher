@@ -1,0 +1,116 @@
+phases:
+  scope-topic:
+    mode: agent
+    agent: topic-scoper
+    directive: |
+      Read `config/topic-brief.json` for the documentary topic, angle, target audience, and duration target.
+      Use sequential-thinking to decompose the topic into research dimensions.
+      Generate 10-20 specific search queries across primary and secondary source categories.
+      Identify key questions the documentary must answer, source categories to target, and potential research challenges.
+      Write your output to `data/research-scope.json`.
+      Decision: `scoped` if the scope is clear and actionable with enough specificity to guide web research.
+      Decision: `too-broad` if the topic is so large or vague that targeted research would be impossible — include a suggested narrowing in your reasoning.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning]
+      verdicts: [scoped, too-broad]
+    retry_policy:
+      max_attempts: 2
+
+  gather-sources:
+    mode: agent
+    agent: source-gatherer
+    directive: |
+      Read `data/research-scope.json` for queries, source categories, and key questions.
+      For each query, use the fetch MCP to retrieve relevant web pages.
+      Extract from each page: title, author, publication, date, key claims, direct quotes, statistics, people mentioned, and credibility signals.
+      Assign a credibility score 1-5 to each source based on publication type and author credentials.
+      Write all sources to `data/source-database.json` as a JSON array.
+      Write a running log of what you fetched and found to `data/gathering-log.md`.
+      You must gather a minimum of 8 distinct sources spanning at least 3 different credibility levels.
+      Decision: `sufficient` if you have 8+ sources with good topic coverage across query dimensions.
+      Decision: `insufficient` if you could not gather enough sources — explain what additional queries are needed in your reasoning.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning]
+      verdicts: [sufficient, insufficient]
+    retry_policy:
+      max_attempts: 3
+
+  check-facts:
+    mode: agent
+    agent: fact-checker
+    directive: |
+      Read `data/source-database.json` to get all gathered sources and their extracted claims.
+      Use sequential-thinking to systematically cross-reference every significant claim across sources.
+      For each claim, document which sources support it, which contradict it, and assign a confidence level.
+      Write the structured analysis to `data/fact-check-report.json`.
+      Write a human-readable summary to `data/fact-check-summary.md` including confidence distribution statistics.
+      Decision verdicts:
+      - `verified`: more than 80% of claims are high or medium confidence — proceed to narrative
+      - `disputed`: one or more claims central to the story are actively contradicted across sources — need better targeted source gathering
+      - `unreliable`: more than 40% of claims are low confidence or unverifiable — the research scope needs to be narrowed
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning]
+      verdicts: [verified, disputed, unreliable]
+
+  build-narrative:
+    mode: agent
+    agent: narrative-architect
+    directive: |
+      Read `data/fact-check-report.json` for verified claims and confidence levels.
+      Read `data/source-database.json` for source details and quotes.
+      If `data/narrative-feedback.json` exists, read it carefully and address every point of feedback before proceeding.
+      Use sequential-thinking to design a documentary narrative structure: hook, setup, rising action, climax, resolution.
+      Organize verified claims and quotes into thematic scenes. Each scene must cite specific claim IDs and source IDs.
+      Write the structured outline to `data/narrative-outline.json`.
+      Write a readable version to `data/narrative-outline.md`.
+      Decision verdicts:
+      - `compelling`: the arc creates genuine narrative tension, addresses all key questions, scenes flow logically
+      - `needs-work`: specific scenes are weak, key questions are unanswered, or pacing is off — write detailed feedback to `data/narrative-feedback.json` identifying exactly what needs to change
+      - `restructure`: fundamental arc problems that require rethinking the narrative from scratch
+    capabilities:
+      mutates_state: true
+      writes_files: true
+    decision_contract:
+      required_fields: [verdict, reasoning]
+      verdicts: [compelling, needs-work, restructure]
+    retry_policy:
+      max_attempts: 3
+
+  write-script:
+    mode: agent
+    agent: scriptwriter
+    directive: |
+      Read `data/narrative-outline.json` for the scene-by-scene structure.
+      Read `data/source-database.json` for source details including titles and URLs.
+      Read `data/fact-check-report.json` to know which claims are verified and at what confidence level.
+      Write a complete narration script to `output/script.md`. Every factual assertion must include an inline citation.
+      Script format per scene: SCENE header, narrator text with citations, interview suggestions, B-roll notes, transition cue.
+      Write a consolidated interview guide to `output/interview-guide.md` grouping all interview suggestions by interviewee type.
+      Write all B-roll and visual suggestions to `output/visual-notes.md` organized by scene and theme.
+      Only cite claims that are marked high or medium confidence in the fact-check report.
+    capabilities:
+      mutates_state: true
+      writes_files: true
+
+  compile-package:
+    mode: agent
+    agent: fact-checker
+    directive: |
+      Read all files in `data/` and `output/` to compile the final research package.
+      Validate citation integrity: every [Source: ...] reference in `output/script.md` must resolve to a real entry in `data/source-database.json`.
+      Write `output/research-package.md` containing: executive summary, methodology description, key findings by theme, source overview, and script summary.
+      Write `output/source-bibliography.md` with a formatted bibliography of all sources, sorted by credibility score descending, including: full citation, URL, credibility score (1-5), and what it contributed to the research.
+      Write `output/research-stats.json` with: total_sources, claims_high_confidence, claims_medium_confidence, claims_low_confidence, claims_disputed, citation_integrity_pass (boolean), coverage_by_theme (object), estimated_script_duration_minutes.
+      Report any citation validation failures clearly in `output/research-package.md` under a "Citation Issues" section.
+    capabilities:
+      mutates_state: true
+      writes_files: true
